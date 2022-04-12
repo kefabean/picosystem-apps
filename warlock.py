@@ -40,6 +40,18 @@ class Player:
         self._hero = max(self._hero + delta, 0)
         return self._hero
 
+class SceneNote:
+
+    def __init__(self, player, monster):
+        letters = 'abcdefghijklmnopqrstuvwxyz1234567890 '
+        self.buttons  = [
+            LetterButton(char, 11 * (count % 11),  17 * (count // 11), player.gold) for count, char in enumerate(letters)
+        ]
+        
+    def draw(self):
+        pass
+
+
 class SceneAttr:
 
     def __init__(self, player, monster):
@@ -166,6 +178,33 @@ class NumberButton(Button):
         self.func(1)
 
 
+class LetterButton(Button):
+
+    def __init__(self, message, x, y, func):
+        super().__init__(message, x, y, func)    
+        self.col = (5, 5, 10)
+        
+    def draw(self, is_selected):
+        pen(*self.col)
+        if is_selected:
+            frect(self.x, self.y, 10, 15)
+            pen(0, 0, 0)
+        else:
+            rect(self.x, self.y, 10, 15)
+        text(self.message, self.x + 2, self.y + 4)
+        
+    def press_a(self):
+        pass
+    
+    def press_down(self):
+        blip.play(200, 18, 100)
+        self.func(-1)
+    
+    def press_up(self):
+        blip.play(800, 18, 50)
+        self.func(1)
+
+
 class Game:
 
     def __init__(self):
@@ -175,7 +214,8 @@ class Game:
         self.monster = Player()
         self.scenes  = [
             SceneDice(self.player, self.monster),
-            SceneAttr(self.player, self.monster)
+            SceneAttr(self.player, self.monster),
+            SceneNote(self.player, self.monster)
         ]
 
     def draw(self, tick):
