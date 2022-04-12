@@ -21,15 +21,15 @@ class Player:
         self._hero    = 0
 
     def skill(self, delta = 0):
-        self._skill = max(min(12, self._skill + delta), 1)
+        self._skill = max(min(12, self._skill + delta), 0)
         return self._skill
         
     def stamina(self, delta = 0):
-        self._stamina = max(min(24, self._stamina + delta), 1)
+        self._stamina = max(min(24, self._stamina + delta), 0)
         return self._stamina
 
     def luck(self, delta = 0):
-        self._luck = max(min(24, self._luck + delta), 1)
+        self._luck = max(min(24, self._luck + delta), 0)
         return self._luck
 
     def gold(self, delta = 0):
@@ -40,33 +40,100 @@ class Player:
         self._hero = max(self._hero + delta, 0)
         return self._hero
 
-class SceneNote:
-
-    def __init__(self, player, monster):
-        letters = 'abcdefghijklmnopqrstuvwxyz1234567890 '
-        self.buttons  = [
-            LetterButton(char, 11 * (count % 11),  17 * (count // 11), player.gold) for count, char in enumerate(letters)
-        ]
+class Scene:
+    
+    def __init__(self):
+        self.button = 0
+        self.buttons = []
         
     def draw(self):
-        pass
+        pen(0, 0, 0)
+        clear()
+        for count, b in enumerate(self.buttons):
+            b.draw(self.button == count)
+        
+    def press_left(self):
+        if self.button > 0:
+            self.button -= 1
+            return True
+        return False
+        
+    def press_right(self):
+        if self.button < (len(self.buttons) - 1):
+            self.button += 1
+            return True
+        return False
+    
+    def press_a(self):
+        self.buttons[self.button].press_a()
+        
+    def press_up(self):
+        self.buttons[self.button].press_up()
+    
+    def press_down(self):
+        self.buttons[self.button].press_down()
 
 
-class SceneAttr:
+class NoteScene(Scene):
 
     def __init__(self, player, monster):
+        super().__init__()
+        letters = '1234567890-abcedfghihjklmnopqrstuvwxyz,.:? '
+        self.buttons  = [
+            LetterButton(
+                char,
+                11 * (count % 11),
+                65 + 13 * (count // 11),
+                self.write
+            ) for count, char in enumerate(letters)
+        ]
+        self.buttons.append(
+            LetterButton("<", 11 * 10,  65 + 13 * 3, self.backspace)
+        )
+        self.col = (5, 5, 10)
+        self.note = ""
+        
+    def press_up(self):
+        if self.button > 10:
+            self.button -= 11
+            blip.play(1600, 30, 100)
+        
+    def press_down(self):
+        if (len(self.buttons) - self.button) > 11:
+            blip.play(1800, 30, 100)
+            self.button += 11
+        
+    def backspace(self, char):
+        self.note = self.note[:-1]
+        
+    def write(self, char):
+        self.note += char
+        
+    def draw(self):
+        super().draw()
+        pen(*self.col)
+        text("Notes:", 1, 1)
+        pen(5, 15, 5)
+        text(self.note, 1, 14, 60)
+
+
+class AttrScene(Scene):
+
+    def __init__(self, player, monster):
+        super().__init__()
         self.buttons  = [
             NumberButton("Gold", 1,  1, player.gold),
             NumberButton("Hero", 41,  1, player.hero)
         ]
         
     def draw(self):
-        pass
+        super().draw()
 
 
-class SceneDice:
+class DiceScene(Scene):
 
     def __init__(self, player, monster):
+        super().__init__()
         self.step     = 0
         self.player   = player
         self.monster  = monster
@@ -102,6 +169,7 @@ class SceneDice:
         text(str(val), x + 7, y +7)
         
     def draw(self):
+        super().draw()
         if self.player.stamina() == 0:
             pen(15, 0, 0)
             text("Player dead!", 1, 39)
@@ -187,91 +255,56 @@ class LetterButton(Button):
     def draw(self, is_selected):
         pen(*self.col)
         if is_selected:
-            frect(self.x, self.y, 10, 15)
+            frect(self.x, self.y, 10, 12)
             pen(0, 0, 0)
         else:
-            rect(self.x, self.y, 10, 15)
-        text(self.message, self.x + 2, self.y + 4)
+            rect(self.x, self.y, 10, 12)
+        text(self.message, self.x + 2, self.y + 2)
         
     def press_a(self):
-        pass
+        self.func(self.message)
     
     def press_down(self):
-        blip.play(200, 18, 100)
-        self.func(-1)
+        pass
     
     def press_up(self):
-        blip.play(800, 18, 50)
-        self.func(1)
+        pass
 
 
 class Game:
 
     def __init__(self):
-        self.scene   = 0
-        self.button  = 0
+        self.scene_index   = 0
         self.player  = Player()
         self.monster = Player()
         self.scenes  = [
-            SceneDice(self.player, self.monster),
-            SceneAttr(self.player, self.monster),
-            SceneNote(self.player, self.monster)
+            DiceScene(self.player, self.monster),
+            AttrScene(self.player, self.monster),
+            NoteScene(self.player, self.monster)
         ]
 
     def draw(self, tick):
-        pen(0, 0, 0)
-        clear()
-        for count, b in enumerate(self.scenes[self.scene].buttons):
-            b.draw(self.button == count)
-        self.scenes[self.scene].draw()
-
-    def nav_left(self):
-        if self.button == 0:
-            if self.scene == 0:
-                pass
-            else:
-                self.scene -= 1
-                self.button = len(self.scenes[self.scene].buttons) - 1
-        else:
-            self.button -= 1
-
-    def nav_right(self):
-        if self.button == (len(self.scenes[self.scene].buttons) - 1):
-            if self.scene == (len(self.scenes) - 1):
-                pass
-            else:
-                self.scene += 1
-                self.button = 0
-        else:
-            self.button += 1
+        scene = self.scenes[self.scene_index]
+        scene.draw()
         
     def update(self, tick):
+        scene = self.scenes[self.scene_index]
         if pressed(LEFT):
             blip.play(1600, 30, 100)
-            self.nav_left()
+            if not scene.press_left() and self.scene_index > 0:
+                self.scene_index -= 1
         if pressed(RIGHT):
             blip.play(1800, 30, 100)
-            self.nav_right()
-        button = self.scenes[self.scene].buttons[self.button]
+            if not scene.press_right() and self.scene_index < (len(self.scenes) - 1):
+                self.scene_index += 1
         if pressed(A):
-            button.press_a()
+            scene.press_a()
         if pressed(UP):
-            button.press_up()
+            scene.press_up()
         if pressed(DOWN):
-            button.press_down()
-        # if buttons[4].val == 0:
-        #     selected = 4
-        #     if len(buttons) == 6:
-        #         buttons.pop(5)
-        # elif buttons[1].val == 0:
-        #     selected = 1
-        #     if len(buttons) == 6:
-        #         buttons.pop(5)
-        # else:
-        #     if len(buttons) == 5:
-        #         buttons.append(Button("Roll", 81, 60))
+            scene.press_down()
 
- 
+
 def update(tick):
     global g
     g.update(tick)
