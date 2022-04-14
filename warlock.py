@@ -144,7 +144,7 @@ class Scene:
 
 class NoteScene(Scene):
 
-    def __init__(self, player, monster):
+    def __init__(self, game):
         super().__init__()
         letters = '1234567890-abcedfghihjklmnopqrstuvwxyz,.:? '
         self.buttons  = [
@@ -189,37 +189,37 @@ class NoteScene(Scene):
 
 class ResetScene(Scene):
 
-    def __init__(self, player, monster):
+    def __init__(self, game):
         super().__init__()
         self.buttons  = [
-            ActionButton("Reset?", 1,  1, player.reset)
+            ActionButton("Reset?", 1,  1, game.player.reset)
         ]
         
         
 class AttrScene(Scene):
 
-    def __init__(self, player, monster):
+    def __init__(self, game):
         super().__init__()
         self.buttons  = [
-            NumberButton("Gold", 1,  1, player.gold),
-            NumberButton("Hero", 41,  1, player.hero)
+            NumberButton("Gold", 1,  1, game.player.gold),
+            NumberButton("Hero", 41,  1, game.player.hero)
         ]
 
 
 class DiceScene(Scene):
 
-    def __init__(self, player, monster):
+    def __init__(self, game):
         super().__init__()
         self.step     = 0
-        self.player   = player
-        self.monster  = monster
+        self.player   = game.player
+        self.monster  = game.monster
         self.dice     = []
         self.buttons  = [
-            NumberButton("Skill", 1,  1, player.skill),
-            NumberButton("Stam", 41,  1, player.stamina),
-            NumberButton("Luck", 81,  1, player.luck),
-            NumberButton("Skill", 1, 60, monster.skill),
-            NumberButton("Stam", 41, 60, monster.stamina),
+            NumberButton("Skill", 1,  1, game.player.skill),
+            NumberButton("Stam", 41,  1, game.player.stamina),
+            NumberButton("Luck", 81,  1, game.player.luck),
+            NumberButton("Skill", 1, 60, game.monster.skill),
+            NumberButton("Stam", 41, 60, game.monster.stamina),
             ActionButton("Roll", 81, 60, self.roll)
         ]
     
@@ -275,12 +275,12 @@ class Game:
         self.player  = Player(data["player"])
         self.monster = Player(data["monster"])
         self.scenes  = [
-            ResetScene(self.player, self.monster),
-            DiceScene(self.player, self.monster),
-            AttrScene(self.player, self.monster),
-            NoteScene(self.player, self.monster)
+            ResetScene(self),
+            DiceScene(self),
+            AttrScene(self),
+            NoteScene(self)
         ]
-        self.scenes[2].note = data["note"]
+        self.scenes[3].note = data["note"]
 
     def draw(self, tick):
         pen(0, 0, 0)
@@ -306,7 +306,7 @@ class Game:
         save_data = {
             "player": self.player.__dict__,
             "monster": self.monster.__dict__,
-            "note": self.scenes[2].note
+            "note": self.scenes[3].note
         }
         with open("warlock_data.json",'w') as fh:
            json.dump(save_data, fh)
