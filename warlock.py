@@ -86,6 +86,7 @@ class Player:
             self._luck    = data['_luck']
             self._gold    = data['_gold']
             self._hero    = data['_hero']
+            self._note    = data['_note']
 
     def skill(self, delta = 0):
         self._skill = max(min(12, self._skill + delta), 0)
@@ -106,6 +107,12 @@ class Player:
     def hero(self, delta = 0):
         self._hero = max(self._hero + delta, 0)
         return self._hero
+
+    def backspace(self, char):
+        self._note = self._note[:-1]
+        
+    def add_char(self, char):
+        self._note += char
     
     def reset(self):
             self._skill   = random.randint(1, 6) + 6
@@ -113,13 +120,16 @@ class Player:
             self._luck    = random.randint(1, 6) + 6
             self._gold    = 0
             self._hero    = 0
+            self._note    = ""
 
 
 class Scene:
     
-    def __init__(self):
+    def __init__(self, game):
         self.button_index = 0
         self.moved = False
+        self.game = game
+        self.init()
 
     def navigate(self):
         if pressed(LEFT):
@@ -144,27 +154,19 @@ class Scene:
 
 class NoteScene(Scene):
 
-    def __init__(self, game):
-        super().__init__()
+    def init(self):
         letters = '1234567890-abcedfghihjklmnopqrstuvwxyz,.:? '
         self.buttons  = [
             LetterButton(
                 char,
                 11 * (count % 11),
                 65 + 13 * (count // 11),
-                self.add_char
+                self.game.player.add_char
             ) for count, char in enumerate(letters)
         ]
         self.buttons.append(
-            LetterButton("<", 11 * 10,  65 + 13 * 3, self.backspace)
+            LetterButton("<", 11 * 10,  65 + 13 * 3, self.game.player.backspace)
         )
-        self.note = ""
-
-    def backspace(self, char):
-        self.note = self.note[:-1]
-        
-    def add_char(self, char):
-        self.note += char
 
     def draw(self, tick):
         pen(5, 5, 10)
@@ -173,8 +175,8 @@ class NoteScene(Scene):
         if tick // 10 % 2 == 0:
             cursor = "|"
         else:
-            cursor = ""
-        text(self.note + cursor, 1, 14, 120)
+            cursor = " "
+        text(self.game.player._note + cursor, 1, 14, 120)
 
     def update(self):
         if pressed(UP):
@@ -189,45 +191,40 @@ class NoteScene(Scene):
 
 class ResetScene(Scene):
 
-    def __init__(self, game):
-        super().__init__()
+    def init(self):
         self.buttons  = [
-            ActionButton("Reset?", 1,  1, game.player.reset)
+            ActionButton("Reset?", 1,  1, self.game.player.reset)
         ]
         
         
 class AttrScene(Scene):
 
-    def __init__(self, game):
-        super().__init__()
+    def init(self):
         self.buttons  = [
-            NumberButton("Gold", 1,  1, game.player.gold),
-            NumberButton("Hero", 41,  1, game.player.hero)
+            NumberButton("Gold", 1,  1, self.game.player.gold),
+            NumberButton("Hero", 41, 1, self.game.player.hero)
         ]
 
 
 class DiceScene(Scene):
 
-    def __init__(self, game):
-        super().__init__()
+    def init(self):
         self.step     = 0
-        self.player   = game.player
-        self.monster  = game.monster
         self.dice     = []
         self.buttons  = [
-            NumberButton("Skill", 1,  1, game.player.skill),
-            NumberButton("Stam", 41,  1, game.player.stamina),
-            NumberButton("Luck", 81,  1, game.player.luck),
-            NumberButton("Skill", 1, 60, game.monster.skill),
-            NumberButton("Stam", 41, 60, game.monster.stamina),
+            NumberButton("Skill", 1,  1, self.game.player.skill),
+            NumberButton("Stam", 41,  1, self.game.player.stamina),
+            NumberButton("Luck", 81,  1, self.game.player.luck),
+            NumberButton("Skill", 1, 60, self.game.monster.skill),
+            NumberButton("Stam", 41, 60, self.game.monster.stamina),
             ActionButton("Roll", 81, 60, self.roll)
         ]
     
     def roll(self):
         if self.step == 0:
             self.dice = [ random.randint(1, 6) for r in range(4) ]
-            self.player_attack  = sum(self.dice[0:2]) + self.player.skill()
-            self.monster_attack = sum(self.dice[2:4]) + self.monster.skill()
+            self.player_attack  = sum(self.dice[0:2]) + self.game.player.skill()
+            self.monster_attack = sum(self.dice[2:4]) + self.game.monster.skill()
         self.step += 1
         if self.step == 5:
             if self.player_attack > self.monster_attack:
@@ -245,11 +242,11 @@ class DiceScene(Scene):
         text(str(val), x + 7, y +7)
         
     def draw(self, tick):
-        if self.player.stamina() == 0:
+        if self.game.player.stamina() == 0:
             pen(15, 0, 0)
             text("Player dead!", 1, 39)
             return
-        if self.monster.stamina() == 0:
+        if self.game.monster.stamina() == 0:
             pen(15, 0, 0)
             text("Monster killed!", 1, 98)
             return
@@ -280,7 +277,6 @@ class Game:
             AttrScene(self),
             NoteScene(self)
         ]
-        self.scenes[3].note = data["note"]
 
     def draw(self, tick):
         pen(0, 0, 0)
@@ -305,8 +301,7 @@ class Game:
     def save(self):
         save_data = {
             "player": self.player.__dict__,
-            "monster": self.monster.__dict__,
-            "note": self.scenes[3].note
+            "monster": self.monster.__dict__
         }
         with open("warlock_data.json",'w') as fh:
            json.dump(save_data, fh)
