@@ -97,7 +97,7 @@ class Player:
         return self._stamina
 
     def luck(self, delta = 0):
-        self._luck = max(min(24, self._luck + delta), 0)
+        self._luck = max(min(12, self._luck + delta), 0)
         return self._luck
 
     def gold(self, delta = 0):
@@ -209,15 +209,18 @@ class AttrScene(Scene):
 class DiceScene(Scene):
 
     def init(self):
-        self.step     = 0
-        self.dice     = []
-        self.buttons  = [
-            NumberButton("Skill", 1,  1, self.game.player.skill),
-            NumberButton("Stam", 41,  1, self.game.player.stamina),
-            NumberButton("Luck", 81,  1, self.game.player.luck),
-            NumberButton("Skill", 1, 60, self.game.monster.skill),
-            NumberButton("Stam", 41, 60, self.game.monster.stamina),
-            ActionButton("Roll", 81, 60, self.roll)
+        self.step         = 0
+        self.player_lucky = None
+        self.luck_step    = 0
+        self.dice         = []
+        self.buttons      = [
+            NumberButton("Skill", 1,  1,  self.game.player.skill),
+            NumberButton("Stam", 41,  1,  self.game.player.stamina),
+            NumberButton("Luck", 81,  1,  self.game.player.luck),
+            NumberButton("Skill", 1, 60,  self.game.monster.skill),
+            NumberButton("Stam", 41, 60,  self.game.monster.stamina),
+            ActionButton("Fight", 81, 60,  self.roll),
+            ActionButton("Luck", 81, 75, self.test_luck)
         ]
     
     def roll(self):
@@ -228,41 +231,64 @@ class DiceScene(Scene):
         self.step += 1
         if self.step == 5:
             if self.player_attack > self.monster_attack:
-                self.monster.stamina(-1) 
+                self.game.monster.stamina(-1) 
                 win.play(1200, 180, 100)
             if self.player_attack < self.monster_attack:
-                self.player.stamina(-1)
+                self.game.player.stamina(-1)
                 lose.play(1200, 180, 100)
         self.step %= 5
 
-    def draw_dice(self, x, y, val):
-        pen(10, 10, 10)
+    def test_luck(self):
+        if self.luck_step == 0:
+            self.luck_dice = [ random.randint(1, 6) for r in range(2) ]
+            self.player_lucky = sum(self.luck_dice) <= self.game.player.luck()
+        if self.luck_step == 1:
+            self.player_lucky = None
+            self.game.player.luck(-1)
+        self.luck_step += 1
+        self.luck_step %= 2
+
+    def draw_dice(self, x, y, val, col = None):
+        if col is None:
+            pen(10, 10, 10)
+        else:
+            pen(*col)
         frect(x, y, 20, 20)
         pen(0, 0, 0)
-        text(str(val), x + 7, y +7)
+        text(str(val), x + 7, y + 7)
         
     def draw(self, tick):
-        if self.game.player.stamina() == 0:
-            pen(15, 0, 0)
-            text("Player dead!", 1, 39)
-            return
-        if self.game.monster.stamina() == 0:
-            pen(15, 0, 0)
-            text("Monster killed!", 1, 98)
-            return
-        if self.step > 0:
-            self.draw_dice(1, 33, self.dice[0])
-        if self.step > 1:
-            self.draw_dice(28, 33, self.dice[1])
-            pen(15, 0, 0)
-            text("Attack = " + str(self.player_attack), 53, 39)
-        if self.step > 2:
-            self.draw_dice(1, 92, self.dice[2])
-        if self.step > 3:
-            self.draw_dice(28, 92, self.dice[3])
-            pen(15, 0, 0)
-            text("Attack = " + str(self.monster_attack), 53, 98)
-
+        if self.player_lucky is None:
+            if self.game.player.stamina() == 0:
+                pen(15, 0, 0)
+                text("Player dead!", 1, 39)
+                return
+            if self.game.monster.stamina() == 0:
+                pen(15, 0, 0)
+                text("Monster killed!", 1, 98)
+                return
+            if self.step > 0:
+                self.draw_dice(1, 33, self.dice[0])
+            if self.step > 1:
+                self.draw_dice(28, 33, self.dice[1])
+                pen(15, 0, 0)
+                text("Attack = " + str(self.player_attack), 53, 39)
+            if self.step > 2:
+                self.draw_dice(1, 92, self.dice[2])
+            if self.step > 3:
+                self.draw_dice(28, 92, self.dice[3])
+                pen(15, 0, 0)
+                text("Attack = " + str(self.monster_attack), 53, 98)
+        else:
+            if self.luck_step == 1:
+                self.draw_dice(1, 33, self.luck_dice[0], col = (0, 12, 0))
+                self.draw_dice(28, 33, self.luck_dice[1], col = (0, 12, 0))
+            if self.player_lucky:
+                pen(0, 15, 0)
+                text("Lucky", 53, 39)
+            else:
+                pen(15, 0, 0)
+                text("Unlucky", 53, 39)
 
 class Game:
 
