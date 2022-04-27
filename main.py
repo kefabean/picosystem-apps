@@ -1,19 +1,26 @@
 backlight(0)
 
-import os    # noqa: E402
-import math  # noqa: E402
-import time  # noqa: E402
-import gc    # noqa: E402
+import os
+import math
+import time
+import gc
 
-
+battery_level = 100
+battery_text = ""
+battery_offset = 0
+battery_colour = (10, 10, 10)
 last_note = 0
 note_duration = 0
 note_idx = 0
 intro_melody = True
-buffer = Buffer(128, 128)
-spritesheet(buffer)
-open("s4m_ur4i-dingbads.16bpp", "rb").readinto(buffer)
-
+spritesheet()
+machine_id = machine.unique_id()
+if machine_id == b'\xe4`$\xc7C\x0e3*':
+    owner = "Thomas"
+elif machine_id == b'\xe4`$\xc7C!B*':
+    owner = "Josie"
+else:
+    owner = "Unknown"
 
 notes = [
     (None, 50), ("G6", 5), ("E6", 15), ("A6", 5), ("G6", 15), (None, 25), ("B7", 1), ("C7", 1)
@@ -50,9 +57,7 @@ filecount = len(files)
 target_angle = 0
 current_angle = 0
 selected = 0
-
 blip = Voice(10, 10, 10, 10, 40, 2)
-
 ding = Voice(5, 5, 100, 500, 0, 0)
 ding.effects(reverb=50)
 ding.bend(500, 500)
@@ -64,6 +69,7 @@ def get_item_angle(index):
 
 def update_melody(tick):
     global last_note, note_idx, note_duration, intro_melody
+    
     if tick - last_note > note_duration:
         last_note = tick
         note, note_duration = notes[note_idx]
@@ -75,7 +81,17 @@ def update_melody(tick):
 
 
 def update(tick):
-    global selected, target_angle
+    global selected, target_angle, battery_level, battery_colour, battery_text, battery_offset
+    
+    if tick % 1000 == 0:
+        battery_level = battery()
+        if battery_level < 20:
+            battery_colour = (15, 0, 0)
+        else:
+            battery_colour = (10, 10, 10)
+        battery_text = str(battery_level) + "%"
+        width, _ = measure(battery_text)
+        battery_offset = 26 - width
 
     if intro_melody:
         update_melody(tick)
@@ -102,7 +118,6 @@ def update(tick):
 def draw(tick):
     global current_angle, intro_melody
 
-    # clear the background
     pen(0, 0, 0)
     clear()
 
@@ -114,33 +129,45 @@ def draw(tick):
         text(label, int(60 - (label_width / 2)), 90)
         return
 
-    pen(10, 10, 10)
-    text("Run a file:", 10, 10)
+    pen(11, 11, 8)
+    text("Run file", 40, 15)
+    
+    # display owner and battery level
+    pen(5, 5, 5)
+    text(owner, 0,0)
+    rect(70 + battery_offset, 0, 20, 8)
+    rect(90 + battery_offset, 2, 2, 4)
+    text(battery_text, 94 + battery_offset, 1)
+    pen(*battery_colour)
+    frect(72 + battery_offset, 2, int(16 * battery_level / 100), 4)
 
     current_angle += (target_angle - current_angle) / 10.0
 
     for i in range(filecount):
         item_angle = get_item_angle(i) + current_angle
 
-        # add a bounce to the selected weapon
+        # add a bounce to the selected sprite
         bounce = 0
         if i == selected%filecount:
             bounce = math.sin(math.radians(item_angle + (time.ticks_ms() / 2.0))) * 10.0 - 10.0
 
-        x = math.sin(math.radians(item_angle)) * 45.0
-        y = math.cos(math.radians(item_angle)) * 20.0
-
-        scale = ((math.cos(math.radians(item_angle)) + 1.0) * 8.0) + 7.0
+        rx = math.sin(math.radians(item_angle))
+        ry = math.cos(math.radians(item_angle))
+        x = rx * 45.0
+        y = ry * 20.0
+        scale = ((ry + 1.0) * 8.0) + 7.0
 
         sprite(
-            ord(files[i][0]),                                                  # sprite
-            int(60 + x - (scale / 2)), int(55 + y - (scale / 2) + bounce),  # position
-            1, 1,
-            int(scale), int(scale)                                          # size
+            #ord(files[i][0]) -97, # sprite number
+            i,
+            int(60 + x - (scale / 2)),           # x position
+            int(55 + y - (scale / 2) + bounce),  # y position
+            1, 1,                                # not clear what this does?
+            int(scale), int(scale)               # size
         )
 
     # centre name of file at bottom of screen
-    label = files[selected%filecount]
+    label = files[selected % filecount]
     if label == "__quit__":
         label = "quit"
     label_width, _ = measure(label)
@@ -153,7 +180,7 @@ def draw(tick):
 start()  # Will unblock when "quit" is called
 
 
-__launch_file__ = files[selected%filecount]
+__launch_file__ = files[selected % filecount]
 for k in locals().keys():
     if k not in ("gc", "__launch_file__"):
         del locals()[k]
