@@ -1,5 +1,5 @@
 import random
-from leaderboard import Leaderboard
+from _leaderboard import Leaderboard
 
 colors = [
     (0, 0, 0),

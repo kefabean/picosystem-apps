@@ -31,7 +31,8 @@ intro.envelope(attack=50, decay=10, sustain=70, release=2000)
 
 files = [
     file for file in os.listdir() if file.endswith(".py") and
-    file not in ("main.py", "launcher.py", "sprites.py", "spritesheets.py")
+    file not in ("main.py", "launcher.py", "sprites.py", "spritesheets.py") and
+    not file.startswith("_")
 ]
 
 if "shapes.py" not in files:
