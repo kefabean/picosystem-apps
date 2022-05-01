@@ -1,5 +1,5 @@
 import random
-
+from leaderboard import Leaderboard
 
 colors = [
     (0, 0, 0),
@@ -52,7 +52,8 @@ class Tetris:
     zoom = 6
     figure = None
 
-    def __init__(self, height, width):
+    def __init__(self, height = 20, width = 10):
+        self.leaderboard = Leaderboard(self, "tetris")
         self.height = height
         self.width = width
         self.field = []
@@ -135,7 +136,7 @@ LIGHT = (10, 10, 10)
 GRAY = (1, 1, 1)
 
 
-game = Tetris(20, 10)
+game = Tetris()
 counter = 0
 fps = 25
 
@@ -147,65 +148,61 @@ def update(tick):
     counter += 1
     if counter > 100000:
         counter = 0
-
-    if counter % (fps // game.level // 2) == 0 or button(DOWN):
-        if game.state == "start":
+    if game.state == "start":
+        if counter % (fps // game.level // 2) == 0 or button(DOWN):
             game.go_down()
+        if pressed(A):
+            game.rotate()
+        if pressed(LEFT):
+            game.go_side(-1)
+        if pressed(RIGHT):
+            game.go_side(1)
+        if pressed(X):
+            game.go_space()
+    else:
+        game.leaderboard.update(game)
 
-    if pressed(A):
-        game.rotate()
-    if pressed(LEFT):
-        game.go_side(-1)
-    if pressed(RIGHT):
-        game.go_side(1)
-    if pressed(X):
-        game.go_space()
-    if game.state == "gameover":
-        if pressed(Y):
-            game.__init__(20, 10)
 
 
 def draw(tick):
     global game
     pen(*BLACK)
     clear()
-
-    for i in range(game.height):
-        for j in range(game.width):
-            pen(*GRAY)
-            rect(
-                game.x + game.zoom * j,
-                game.y + game.zoom * i,
-                game.zoom,
-                game.zoom
-            )
-            if game.field[i][j] > 0:
-                pen(*colors[game.field[i][j]])
-                frect(
-                    game.x + game.zoom * j + 1,
-                    game.y + game.zoom * i + 1,
-                    game.zoom - 2,
-                    game.zoom - 1
+    if game.state == "start":
+        for i in range(game.height):
+            for j in range(game.width):
+                pen(*GRAY)
+                rect(
+                    game.x + game.zoom * j,
+                    game.y + game.zoom * i,
+                    game.zoom,
+                    game.zoom
                 )
-
-    if game.figure is not None:
-        for i in range(4):
-            for j in range(4):
-                p = i * 4 + j
-                if p in game.figure.image():
-                    pen(*colors[game.figure.color])
+                if game.field[i][j] > 0:
+                    pen(*colors[game.field[i][j]])
                     frect(
-                        game.x + game.zoom * (j + game.figure.x) + 1,
-                        game.y + game.zoom * (i + game.figure.y) + 1,
+                        game.x + game.zoom * j + 1,
+                        game.y + game.zoom * i + 1,
                         game.zoom - 2,
-                        game.zoom - 2
+                        game.zoom - 1
                     )
 
-    pen(*LIGHT)
-    text(f"Score: {str(game.score)}", 0, 0)
-    if game.state == "gameover":
-        pen(*WHITE)
-        text("Game Over", 35, 60)
-        text("Press Y to play again", 35, 80, 60)
+        if game.figure is not None:
+            for i in range(4):
+                for j in range(4):
+                    p = i * 4 + j
+                    if p in game.figure.image():
+                        pen(*colors[game.figure.color])
+                        frect(
+                            game.x + game.zoom * (j + game.figure.x) + 1,
+                            game.y + game.zoom * (i + game.figure.y) + 1,
+                            game.zoom - 2,
+                            game.zoom - 2
+                        )
+        pen(*LIGHT)
+        text(f"Score: {str(game.score)}", 0, 0)
+    else:
+        game.leaderboard.draw(tick)
+
 
 start()
