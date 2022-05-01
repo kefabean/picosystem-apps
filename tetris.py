@@ -168,7 +168,7 @@ def draw(tick):
     global game
     pen(*BLACK)
     clear()
-    if game.state == "start":
+    if game.state != "nameentry":
         for i in range(game.height):
             for j in range(game.width):
                 pen(*GRAY)
@@ -201,7 +201,11 @@ def draw(tick):
                         )
         pen(*LIGHT)
         text(f"Score: {str(game.score)}", 0, 0)
-    else:
+    if game.state != "start":
+        alpha(8)
+        pen(0,0,0)
+        clear()
+        alpha()
         game.leaderboard.draw(tick)
 
 
