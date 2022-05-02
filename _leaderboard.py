@@ -3,6 +3,7 @@ import json
 blip = Voice(10, 10, 10, 10, 40, 2)
 lose = Voice(10, 10, 10, 40, -2, 10, 100, 100)
 
+
 class Button:
 
     def __init__(self, message, x, y, func, size = 10, col = (5, 5, 10)):
@@ -27,10 +28,11 @@ class Button:
             blip.play(500, 120, 100)
             self.func(self.message)
 
+
 class Leaderboard:
 
     letters = '1234567890-abcedfghihjklmnopqrstuvwxyz,.:? '
-    titles  = ['1st', '2nd', '3rd', '4th', '5th']
+    titles  = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
 
     def __init__(self, game, game_name):
         self.game = game
@@ -40,11 +42,14 @@ class Leaderboard:
                scores = json.load(fh)
         except:
             scores = [
-                {'name':'hermione', 'score':100},
-                {'name':'harry', 'score':50},
-                {'name':'ron', 'score':20},
-                {'name':'dumbledore', 'score':10},
-                {'name':'hagrid', 'score':5},
+                {'name':'hermione', 'score':500},
+                {'name':'harry', 'score':200},
+                {'name':'ron', 'score':100},
+                {'name':'dumbledore', 'score':50},
+                {'name':'malfoy', 'score':20},
+                {'name':'hagrid', 'score':10},
+                {'name':'snape', 'score':5},
+                {'name':'dobby', 'score':2}
             ]
         self.scores = scores
         self.button_index = 0
@@ -77,22 +82,22 @@ class Leaderboard:
         scores = self.scores
         scores.append({'name':self.name, 'score': self.game.score})
         scores.sort(key = lambda item:item['score'], reverse = True)
-        self.scores = scores[0:5]
+        self.scores = scores[0:len(self.titles)]
         with open(f"{self.game_name}_leaderboard.json",'w') as fh:
            json.dump(self.scores, fh)
         self.game.state = "leaderboard"
 
     def draw_leaderboard(self, tick):
         pen(0,15,0)
-        text("Hall of fame", 30, 15)
+        text("Hall of fame", 30, 10)
         for count, s in enumerate(self.scores):
             score = str(self.scores[count]['score'])
             align, _ = measure(score)
             pen(15, 15, 15)
-            text(Leaderboard.titles[count], 0, count * 10 + 30)
-            text(self.scores[count]['name'], 30, count * 10 + 30)
-            text(str(self.scores[count]['score']), 120 - align, count * 10 + 30)
-        text("Press Y to play again", 8, 100)
+            text(Leaderboard.titles[count], 0, count * 10 + 24)
+            text(self.scores[count]['name'], 30, count * 10 + 24)
+            text(str(self.scores[count]['score']), 120 - align, count * 10 + 24)
+        text("Press Y to play", 25, 110)
 
     def draw_name_entry(self, tick):
         for count, b in enumerate(self.buttons):
@@ -150,4 +155,3 @@ class Leaderboard:
                     self.button_index += 11
                 else:
                     self.button_index = len(self.buttons) - 1
-

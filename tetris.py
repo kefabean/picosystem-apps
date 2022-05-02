@@ -1,6 +1,8 @@
 import random
 from _leaderboard import Leaderboard
 
+counter = 0
+fps = 25
 colors = [
     (0, 0, 0),
     (7, 2, 13),
@@ -10,6 +12,11 @@ colors = [
     (13, 5, 1),
     (13, 2, 10),
 ]
+# Define some colors
+BLACK = (0, 0, 0)
+WHITE = (15, 15, 15)
+LIGHT = (10, 10, 10)
+GRAY = (1, 1, 1)
 
 
 class Figure:
@@ -129,18 +136,6 @@ class Tetris:
             self.figure.rotation = old_rotation
 
 
-# Define some colors
-BLACK = (0, 0, 0)
-WHITE = (15, 15, 15)
-LIGHT = (10, 10, 10)
-GRAY = (1, 1, 1)
-
-
-game = Tetris()
-counter = 0
-fps = 25
-
-
 def update(tick):
     global game, counter, fps
     if game.figure is None:
@@ -161,8 +156,6 @@ def update(tick):
             game.go_space()
     else:
         game.leaderboard.update(game)
-
-
 
 def draw(tick):
     global game
@@ -201,12 +194,15 @@ def draw(tick):
                         )
         pen(*LIGHT)
         text(f"Score: {str(game.score)}", 0, 0)
+
     if game.state != "start":
         alpha(8)
-        pen(0,0,0)
+        pen(*BLACK)
         clear()
         alpha()
         game.leaderboard.draw(tick)
 
 
+game = Tetris()
+game.state = "leaderboard"
 start()
