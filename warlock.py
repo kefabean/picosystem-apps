@@ -18,18 +18,19 @@ class Button:
         self.y = y
         self.message = message
         self.func = func
-
+        self.hidden = False
 
 class ActionButton(Button):
 
     def draw(self, is_selected):
-        pen(10, 10, 15)
-        if is_selected:
-            frect(self.x, self.y, 38, 12)
-            pen(0, 0, 0)
-        else:
-            rect(self.x, self.y, 38, 12)
-        text(self.message, self.x + 2, self.y + 2)
+        if not self.hidden:
+            pen(10, 10, 15)
+            if is_selected:
+                frect(self.x, self.y, 38, 12)
+                pen(0, 0, 0)
+            else:
+                rect(self.x, self.y, 38, 12)
+            text(self.message, self.x + 2, self.y + 2)
 
     def update(self):
         if pressed(A):
@@ -40,15 +41,16 @@ class ActionButton(Button):
 class NumberButton(Button):        
         
     def draw(self, is_selected):
-        pen(15, 10, 15)
-        rect(self.x, self.y + 11, 38, 15)
-        text(str(self.func()), self.x + 2, self.y + 15)
-        if is_selected:
-            frect(self.x, self.y, 38, 12)
-            pen(0, 0, 0)
-        else:
-            rect(self.x, self.y, 38, 12)
-        text(self.message, self.x + 2, self.y + 2)
+        if not self.hidden:
+            pen(15, 10, 15)
+            rect(self.x, self.y + 11, 38, 15)
+            text(str(self.func()), self.x + 2, self.y + 15)
+            if is_selected:
+                frect(self.x, self.y, 38, 12)
+                pen(0, 0, 0)
+            else:
+                rect(self.x, self.y, 38, 12)
+            text(self.message, self.x + 2, self.y + 2)
 
     def update(self):
         if pressed(DOWN):
@@ -62,14 +64,15 @@ class NumberButton(Button):
 class LetterButton(Button):
         
     def draw(self, is_selected):
-        pen(5, 5, 10)
-        if is_selected:
-            frect(self.x, self.y, 10, 12)
-            pen(0, 0, 0)
-        else:
-            rect(self.x, self.y, 10, 12)
-        text(self.message, self.x + 2, self.y + 2)
-        
+        if not self.hidden:
+            pen(5, 5, 10)
+            if is_selected:
+                frect(self.x, self.y, 10, 12)
+                pen(0, 0, 0)
+            else:
+                rect(self.x, self.y, 10, 12)
+            text(self.message, self.x + 2, self.y + 2)
+            
     def update(self):
         if pressed(A):
             self.func(self.message)
@@ -213,22 +216,27 @@ class DiceScene(Scene):
         self.player_lucky = None
         self.luck_step    = 0
         self.dice         = []
+        self.fight_button = ActionButton("Fight", 81, 60,  self.roll)
+        self.luck_button  = ActionButton("Luck", 81, 75, self.luck)
         self.buttons      = [
             NumberButton("Skill", 1,  1,  self.game.player.skill),
             NumberButton("Stam", 41,  1,  self.game.player.stamina),
             NumberButton("Luck", 81,  1,  self.game.player.luck),
             NumberButton("Skill", 1, 60,  self.game.monster.skill),
             NumberButton("Stam", 41, 60,  self.game.monster.stamina),
-            ActionButton("Fight", 81, 60,  self.roll),
-            ActionButton("Luck", 81, 75, self.test_luck)
+            self.fight_button,
+            self.luck_button
         ]
     
     def roll(self):
-        if self.step == 0:
+        self.step += 1
+        if self.step == 1:
+            self.luck_button.hidden = True
             self.dice = [ random.randint(1, 6) for r in range(4) ]
             self.player_attack  = sum(self.dice[0:2]) + self.game.player.skill()
             self.monster_attack = sum(self.dice[2:4]) + self.game.monster.skill()
-        self.step += 1
+        if self.step == 4:
+            self.luck_button.hidden = False
         if self.step == 5:
             if self.player_attack > self.monster_attack:
                 self.game.monster.stamina(-1) 
@@ -238,14 +246,14 @@ class DiceScene(Scene):
                 lose.play(1200, 180, 100)
         self.step %= 5
 
-    def test_luck(self):
-        if self.luck_step == 0:
+    def luck(self):
+        self.luck_step += 1
+        if self.luck_step == 1:
             self.luck_dice = [ random.randint(1, 6) for r in range(2) ]
             self.player_lucky = sum(self.luck_dice) <= self.game.player.luck()
-        if self.luck_step == 1:
+        if self.luck_step == 2:
             self.player_lucky = None
             self.game.player.luck(-1)
-        self.luck_step += 1
         self.luck_step %= 2
 
     def draw_dice(self, x, y, val, col = None):

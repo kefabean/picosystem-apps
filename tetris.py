@@ -1,5 +1,6 @@
 import random
 from _leaderboard import Leaderboard
+import gc
 
 counter = 0
 fps = 25
@@ -196,10 +197,6 @@ def draw(tick):
         text(f"Score: {str(game.score)}", 0, 0)
 
     if game.state != "start":
-        alpha(8)
-        pen(*BLACK)
-        clear()
-        alpha()
         game.leaderboard.draw(tick)
 
 

@@ -1,5 +1,6 @@
 import json
 
+
 blip = Voice(10, 10, 10, 10, 40, 2)
 lose = Voice(10, 10, 10, 40, -2, 10, 100, 100)
 
@@ -114,6 +115,10 @@ class Leaderboard:
         text(self.name + cursor, 1, 34, 120)
         
     def draw(self, tick):
+        alpha(8)
+        pen(0,0,0)
+        clear()
+        alpha()
         if self.game.state == "gameover":
             pen(15, 0, 0)
             text("GAME OVER!", 35, 40)
@@ -129,6 +134,8 @@ class Leaderboard:
         if game.state == "leaderboard":
             if pressed(Y):
                 game.__init__()
+            if pressed(X):
+                machine.reset()
         if game.state == "gameover":
             if pressed(Y):
                 if game.score > self.scores[-1]['score']:
