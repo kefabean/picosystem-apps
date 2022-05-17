@@ -32,7 +32,7 @@ def load_images():
     # Load images for the chess pieces
     global images
     for p in Player.PIECES:
-        buffer = Buffer(32, 32)
+        buffer = Buffer(30, 30)
         open("images/" + p + ".16bpp", "rb").readinto(buffer)
         IMAGES[p] = buffer
         #IMAGES[p] = py.transform.scale(py.image.load("images/" + p + ".png"), (SQ_SIZE, SQ_SIZE))
@@ -62,7 +62,7 @@ def draw_pieces(game_state):
             if piece is not None and piece != Player.EMPTY:
                 blit(
                     IMAGES[piece.get_player() + "_" + piece.get_name()],
-                    0, 0, 32, 32, c * SQ_SIZE, r * SQ_SIZE, 16, 16
+                    0, 0, 30, 30, c * SQ_SIZE, r * SQ_SIZE, 15, 15
                 )
 
 
