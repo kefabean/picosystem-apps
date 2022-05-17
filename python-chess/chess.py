@@ -6,8 +6,6 @@
 # fit in with the rest of the project.
 #
 import _chess_engine as chess_engine
-#import pygame as py
-
 import _chess_ai_engine as ai_engine
 from _chess_enums import Player
 
@@ -40,12 +38,12 @@ def load_images():
 
 def draw_game_state(game_state, valid_moves, square_selected):
     # Draw the complete chess board with pieces
-    draw_squares()
-    highlight_square(game_state, valid_moves, square_selected)
+    draw_board()
     draw_pieces(game_state)
+    highlight_square(game_state, valid_moves, square_selected)
 
 
-def draw_squares():
+def draw_board():
     # Draw the chess board with the alternating two colors
     for r in range(DIMENSION):
         for c in range(DIMENSION):
@@ -68,24 +66,18 @@ def draw_pieces(game_state):
 
 def highlight_square(game_state, valid_moves, square_selected):
     if square_selected != () and game_state.is_valid_piece(square_selected[0], square_selected[1]):
-        row = square_selected[0]
-        col = square_selected[1]
-        if (game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_1)) or \
-                (not game_state.whose_turn() and game_state.get_piece(row, col).is_player(Player.PLAYER_2)):
-            # hightlight selected square
-            #s = py.Surface((SQ_SIZE, SQ_SIZE))
-            #s.set_alpha(100)
-            #s.fill(py.Color("blue"))
+        sel_row = square_selected[0]
+        sel_col = square_selected[1]
+        if (game_state.whose_turn() and game_state.get_piece(sel_row, sel_col).is_player(Player.PLAYER_1)) or \
+                (not game_state.whose_turn() and game_state.get_piece(sel_row, sel_col).is_player(Player.PLAYER_2)):
             pen(0, 0, 15, 7)
-            frect(col * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
-            #screen.blit(s, (col * SQ_SIZE, row * SQ_SIZE))
-
-            # highlight move squares
-            #s.fill(py.Color("green"))
+            frect(sel_col * SQ_SIZE, sel_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
             pen(0, 15, 0, 7)
             for move in valid_moves:
-                #blit(s, (move[1] * SQ_SIZE, move[0] * SQ_SIZE))
                 frect(move[1] * SQ_SIZE, move[0] * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        # display cursor location
+    pen(0, 0, 15)
+    rect(col * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
 
 
 # def main():
@@ -113,10 +105,6 @@ def highlight_square(game_state, valid_moves, square_selected):
 
 def update(tick):
     global human_player, row, col, ai, game_state, valid_moves, square_selected, player_clicks, running, game_over
-    #py.init()
-    #screen = py.display.set_mode((WIDTH, HEIGHT))
-    #clock = py.time.Clock()
-    #game_state = chess_engine.game_state()
     if human_player is 'b':
         ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
         game_state.move_piece(ai_move[0], ai_move[1], True)
@@ -191,9 +179,7 @@ def update(tick):
 
 
 def draw(tick):
-
         draw_game_state(game_state, valid_moves, square_selected)
-
         endgame = game_state.checkmate_stalemate_checker()
         if endgame == 0:
             game_over = True
@@ -205,21 +191,6 @@ def draw(tick):
             game_over = True
             text("Stalemate.", 0, 0)
 
- #       clock.tick(MAX_FPS)
- #       py.display.flip()
-
-
-
-#def draw_text(screen, text):
-#    font = py.font.SysFont("Helvitca", 32, True, False)
-#    text_object = font.render(text, False, py.Color("Black"))
-#    text_location = py.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object.get_width() / 2,
-#                                                      HEIGHT / 2 - text_object.get_height() / 2)
-#    screen.blit(text_object, text_location)
-
-
-#if __name__ == "__main__":
-#    main()
 load_images()
 ai = ai_engine.chess_ai()
 game_state = chess_engine.game_state()
