@@ -24,6 +24,7 @@ running = True
 square_selected = ()  # keeps track of the last selected square
 player_clicks = []  # keeps track of player clicks (two tuples)
 game_over = False
+thinking = False
 
 # TODO: AI black has been worked on. Mirror progress for other two modes
 def load_images():
@@ -104,7 +105,16 @@ def highlight_square(game_state, valid_moves, square_selected):
 #             print("Enter 1 or 2.")
 
 def update(tick):
-    global human_player, row, col, ai, game_state, valid_moves, square_selected, player_clicks, running, game_over
+    global human_player, row, col, ai, game_state, valid_moves, square_selected, player_clicks, running, game_over, thinking
+    if thinking:
+        if human_player is 'w':
+            ai_move = ai.minimax_white(game_state, 3, -1000000, 1000000, True, Player.PLAYER_2)
+            game_state.move_piece(ai_move[0], ai_move[1], True)
+        elif human_player is 'b':
+            ai_move = ai.minimax_black(game_state, 3, -1000000, 1000000, True, Player.PLAYER_1)
+            game_state.move_piece(ai_move[0], ai_move[1], True)
+        thinking = False
+    
     if human_player is 'b':
         ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
         game_state.move_piece(ai_move[0], ai_move[1], True)
@@ -155,13 +165,9 @@ def update(tick):
                     square_selected = ()
                     player_clicks = []
                     valid_moves = []
+                    thinking = True
 
-                    if human_player is 'w':
-                        ai_move = ai.minimax_white(game_state, 2, -100000, 100000, True, Player.PLAYER_2)
-                        game_state.move_piece(ai_move[0], ai_move[1], True)
-                    elif human_player is 'b':
-                        ai_move = ai.minimax_black(game_state, 2, -100000, 100000, True, Player.PLAYER_1)
-                        game_state.move_piece(ai_move[0], ai_move[1], True)
+
             else:
                 valid_moves = game_state.get_valid_moves((row, col))
                 if valid_moves is None:
@@ -177,10 +183,19 @@ def update(tick):
         game_state.undo_move()
         print(len(game_state.move_log))
 
+def message(message, y):
+   dx, dy = measure(message)
+   x = 60 - dx // 2
+   pen(0, 0, 0, 4)
+   frect(x - 4, y - 4, dx + 8, dy + 8)
+   pen(15, 15, 15)
+   text(message, x, y) 
 
 def draw(tick):
         draw_game_state(game_state, valid_moves, square_selected)
         endgame = game_state.checkmate_stalemate_checker()
+        if thinking:
+            message("thinking...", 105)
         if endgame == 0:
             game_over = True
             text("Black wins.", 0, 0)
