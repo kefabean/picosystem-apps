@@ -1,10 +1,11 @@
 #
-# The GUI engine for Python Chess
+# GUI engine for Python Chess
 #
 # Author: Boo Sung Kim, Eddie Sharick
-# Note: The pygame tutorial by Eddie Sharick was used for the GUI engine. The GUI code was altered by Boo Sung Kim to
-# fit in with the rest of the project.
+# Note: The pygame tutorial by Eddie Sharick was used for the GUI engine.
+# The GUI code was altered by Boo Sung Kim to fit in with the rest of the project.
 #
+
 import _chess_engine as chess_engine
 import _chess_ai_engine as ai_engine
 from _chess_enums import Player
@@ -13,7 +14,6 @@ from _chess_enums import Player
 WIDTH = HEIGHT = 120  # width and height of the chess board
 DIMENSION = 8  # the dimensions of the chess board
 SQ_SIZE = HEIGHT // DIMENSION  # the size of each of the squares in the board
-#MAX_FPS = 15  # FPS for animations
 IMAGES = {}  # images for the chess pieces
 colors = [(14,14,14), (5, 5,5)]
 human_player = 'w'
@@ -157,10 +157,10 @@ def update(tick):
                     valid_moves = []
 
                     if human_player is 'w':
-                        ai_move = ai.minimax_white(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
+                        ai_move = ai.minimax_white(game_state, 2, -100000, 100000, True, Player.PLAYER_2)
                         game_state.move_piece(ai_move[0], ai_move[1], True)
                     elif human_player is 'b':
-                        ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
+                        ai_move = ai.minimax_black(game_state, 2, -100000, 100000, True, Player.PLAYER_1)
                         game_state.move_piece(ai_move[0], ai_move[1], True)
             else:
                 valid_moves = game_state.get_valid_moves((row, col))
