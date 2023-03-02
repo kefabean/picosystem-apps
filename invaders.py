@@ -20,6 +20,7 @@ class Ship():
         draw_sprite(self.n, self.x, self.y)
 
     def update(self, tick):
+        global missile, missile1, missile2
         # keys = _ugame.buttons.get_pressed()
         # self.set_frame(4, 0 if self.tick else 4)
         # if keys & _ugame.K_RIGHT:
@@ -33,15 +34,20 @@ class Ship():
         else:
             self.dx = 0 # self.dx // 2
         # if keys & _ugame.K_X:
-        if pressed(X):
-            pass
-            # if missile.y <= -16:
+        if pressed(A):
+            if missile.y <= -16:
+                missile.x = self.x
+                missile.y = self.y
             #     missile.move(self.x, self.y)
             #     # sound.play(pew_sound)
-            # elif missile1.y <= 16:
+            elif missile1.y <= 16:
+                missile1.x = self.x
+                missile1.y = self.y
             #     missile1.move(self.x, self.y)
             #     # sound.play(pew_sound)
-            # elif missile2.y <= 16:
+            elif missile2.y <= 16:
+                missile2.x = self.x
+                missile2.y = self.y
             #     missile2.move(self.x, self.y)
             #     # sound.play(pew_sound)
         # if keys & _ugame.K_O:
@@ -97,53 +103,63 @@ class Ship():
 #                          ship.x + 4, ship.y + 4, ship.x + 12, ship.y + 12):
 #             self.boom = 1
 
-
-# class Missile():
-#     def __init__(self, power):
+class Missile():
+    def __init__(self, power):
 #         super().__init__(tiles, 12, 0, -32)
-#         self.n
-#         self.x = 0
-#         self.y = -32
-#         self.boom = 0
-#         self.power = power
+        self.n = 12
+        self.x = 0
+        self.y = -32
+        self.boom = 0
+        self.power = power
+        
+    def draw(self):
+        draw_sprite(self.n, self.x, self.y)
 
-#     def update(self):
+    def update(self, tick):
+        global aliens
 #         super().update()
-#         if self.boom:
-#             if self.boom == 1:
-#                 pass # sound.play(boom_sound)
+        if self.boom:
+            if self.boom == 1:
+                pass # sound.play(boom_sound)
 #             self.set_frame(12 + self.boom)
-#             self.boom += 1
-#             if self.boom > 4:
-#                 self.boom = 0
-#                 self.kill()
+            self.n = 12 + self.boom
+            self.boom += 1
+            if self.boom > 4:
+                self.boom = 0
+                self.kill()
 #                 aliens.tile(self.ax, self.ay, 0)
-#                 aliens.dirty = True
-#             return
+                aliens.grid[self.ay][self.ax] = 0
+                aliens.dirty = True
+            return
 
-#         if self.y <= -32:
-#             return
+        if self.y <= -32:
+            return
 #         self.move(self.x, self.y - 8)
+        self.y -= 4
 #         self.set_frame(12 - self.power, 0 if self.y % 16 == 6 else 4)
-#         self.ax = (self.x + 8 - aliens.x) // 16
-#         self.ay = (self.y + 4 - aliens.y) // 16
+        self.n = 12 - self.power
+        self.ax = (self.x + 8 - aliens.x) // 16
+        self.ay = (self.y + 4 - aliens.y) // 16
 #         if aliens.tile(self.ax, self.ay) and (self.x + 10 - aliens.x) % 16 > 4:
-#             aliens.tile(self.ax, self.ay, 7)
-#             self.move(self.x, self.y - 4)
-#             self.boom = 1
+        try:
+            if aliens.grid[self.ay][self.ax] and (self.x + 10 - aliens.x) % 16 > 4:
+    #             aliens.tile(self.ax, self.ay, 7)
+                aliens.grid[self.ay][self.ax] = 7
+    #             self.move(self.x, self.y - 4)
+                self.y -= 4
+                self.boom = 1
+        except IndexError:
+            pass
 
-#     def kill(self):
+    def kill(self):
 #         self.move(self.x, -32)
+        self.y = -32
 #         self.set_frame(12 - self.power)
-
+        self.n = 12 - self.power
 
 class Aliens():
     def __init__(self):
-        # super().__init__(tiles, 7, 3)
         self.grid = [ [ 8 for x in range(7)] for y in range(3) ]
-        #for y in range(3):
-        #    for x in range(7):
-        #        self.tile(x, y, 8)
         # self.tick = 0
         self.left = self.right = self.descend = 0
         self.dx = 2
@@ -180,8 +196,9 @@ class Aliens():
         self.right = 16 * 6
         for x in range(7):
             for y in range(3):
-                if self.tile(x, y):
-                    self.left = min(16 * x, self.left)
+                if self.grid[y][x]:
+#                 if self.tile(x, y):
+                    self.left  = min(16 * x, self.left)
                     self.right = min(96 - 16 * x, self.right)
         self.dirty = False
 
@@ -260,7 +277,7 @@ def draw(tick):
 
 def update(tick):
     # global aliens, sprites, game
-    global sprites, state, ship
+    global sprites, state, ship, aliens, missile, missile1, missile2
     if state == 0:
         # space  = _stage.Grid(tiles)
         aliens = Aliens()
@@ -275,13 +292,13 @@ def update(tick):
         # saucer   = Saucer()
         # bomb     = Bomb()
         ship     = Ship()
-        # missile  = Missile(0)
-        # missile1 = Missile(1)
-        # missile2 = Missile(2)
+        missile  = Missile(0)
+        missile1 = Missile(1)
+        missile2 = Missile(2)
         # text = stage.Text(9, 1)
         # text.move(28, 60)
         # sprites = [saucer, bomb, ship, missile, missile1, missile2]
-        sprites = [ship, aliens]
+        sprites = [ship, aliens, missile, missile1, missile2]
         # game.layers = [text] + sprites + [aliens, space]
         # game.render_block()
         # # pew_sound = open("invaders_pew.wav", 'rb')
@@ -295,11 +312,8 @@ def update(tick):
                 sprite.update(tick)
             # aliens.update()
 
-
-# tiles = _stage.Bank.from_bmp16("invaders_tiles.bmp")
-tiles = Buffer(16, 256)
-open("invaders_tiles.16bpp", "rb").readinto(tiles)
-ship = None
+tiles = Buffer(16, 256, "invaders_tiles.16bpp")
+ship = aliens = missile = missile1 = missile2 = None
 state = 0
 sprites = []
 start()
