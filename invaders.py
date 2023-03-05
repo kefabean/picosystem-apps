@@ -2,25 +2,26 @@ import random
 import time
 from _leaderboard import Leaderboard
 
+TILES = Buffer(16, 256, "invaders_tiles.16bpp")
+
 def draw_sprite(n, x, y):
-    global tiles
-    blit(tiles, 0, n * 16, 16, 16, x, y, )
+    blit(TILES, 0, n * 16, 16, 16, x, y, )
 
 
 class Ship():
-    def __init__(self):
+    def __init__(self, game):
         self.n = 4
         self.dx = 0
         self.x = 56
         self.y = 102
         self.tick = 0
         self.dead = False
+        self.game = game
 
     def draw(self):
         draw_sprite(self.n, self.x, self.y)
 
     def update(self, tick):
-        global missile, missile1, missile2
         # keys = _ugame.buttons.get_pressed()
         # self.set_frame(4, 0 if self.tick else 4)
         # if keys & _ugame.K_RIGHT:
@@ -35,19 +36,19 @@ class Ship():
             self.dx = 0 # self.dx // 2
         # if keys & _ugame.K_X:
         if pressed(A):
-            if missile.y <= -16:
-                missile.x = self.x
-                missile.y = self.y
+            if self.game.missile.y <= -16:
+                self.game.missile.x = self.x
+                self.game.missile.y = self.y
             #     missile.move(self.x, self.y)
             #     # sound.play(pew_sound)
-            elif missile1.y <= 16:
-                missile1.x = self.x
-                missile1.y = self.y
+            elif self.game.missile1.y <= 16:
+                self.game.missile1.x = self.x
+                self.game.missile1.y = self.y
             #     missile1.move(self.x, self.y)
             #     # sound.play(pew_sound)
-            elif missile2.y <= 16:
-                missile2.x = self.x
-                missile2.y = self.y
+            elif self.game.missile2.y <= 16:
+                self.game.missile2.x = self.x
+                self.game.missile2.y = self.y
             #     missile2.move(self.x, self.y)
             #     # sound.play(pew_sound)
         # if keys & _ugame.K_O:
@@ -104,45 +105,39 @@ class Ship():
 #             self.boom = 1
 
 class Missile():
-    def __init__(self, power):
+    def __init__(self, game):
         self.n = 12
         self.x = 0
         self.y = -32
         self.boom = 0
-        self.power = power
+        self.power = 0
+        self.game = game
         
     def draw(self):
         draw_sprite(self.n, self.x, self.y)
 
     def update(self, tick):
-        global aliens, score
         if self.boom:
             if self.boom == 1:
-                score += 1
+                self.game.score += 1
                 pass # sound.play(boom_sound)
             self.n = 12 + self.boom
             self.boom += 1
             if self.boom > 4:
                 self.boom = 0
                 self.kill()
-                aliens.grid[self.ay][self.ax] = 0
-                aliens.dirty = True
+                self.game.aliens.grid[self.ay][self.ax] = 0
+                self.game.aliens.dirty = True
             return
-
         if self.y <= -32:
             return
-#         self.move(self.x, self.y - 8)
         self.y -= 4
-#         self.set_frame(12 - self.power, 0 if self.y % 16 == 6 else 4)
         self.n = 12 - self.power
-        self.ax = (self.x + 8 - aliens.x) // 16
-        self.ay = (self.y + 4 - aliens.y) // 16
-#         if aliens.tile(self.ax, self.ay) and (self.x + 10 - aliens.x) % 16 > 4:
+        self.ax = (self.x + 8 - self.game.aliens.x) // 16
+        self.ay = (self.y + 4 - self.game.aliens.y) // 16
         try:
-            if aliens.grid[self.ay][self.ax] and (self.x + 10 - aliens.x) % 16 > 4:
-    #             aliens.tile(self.ax, self.ay, 7)
-                aliens.grid[self.ay][self.ax] = 7
-    #             self.move(self.x, self.y - 4)
+            if self.game.aliens.grid[self.ay][self.ax] and (self.x + 8 - self.game.aliens.x) % 16 > 2:
+                self.game.aliens.grid[self.ay][self.ax] = 7
                 self.y -= 4
                 self.boom = 1
         except IndexError:
@@ -155,16 +150,17 @@ class Missile():
         self.n = 12 - self.power
 
 class Aliens():
-    def __init__(self):
+    def __init__(self, game):
         self.grid = [ [ 8 for x in range(7)] for y in range(3) ]
         # self.tick = 0
         self.left = self.descend = self.right = self.bottom = 0
-        self.dx = 2
+        self.dx = game.level
         self.num_left = 7 * 3
         self.dirty = False
         self.x = 4
         self.y = 0
         self.i = 0
+        self.game = game
 
     def draw(self):
         for y_index, row in enumerate(self.grid):
@@ -182,7 +178,7 @@ class Aliens():
         # print(f"x: {self.x}, l: {self.left}, r:{self.right}")
         if tick % 8 == 0:
             self.i = 1 - self.i
-        if tick % 4 == 0:
+        if tick % 8 == 0:
             if self.x >= (8 + self.right) or self.x <= (0 - self.left):
                 self.y += 1
                 self.descend += 1
@@ -267,73 +263,121 @@ class Aliens():
 #     else:
 #         pause("You won!")
 
+# def draw_old(tick):
+#     global sprites, score, state
+#     pen(0,0,0)
+#     clear()
+#     for sprite in sprites:
+#         sprite.draw()
+#     pen(5, 5, 8)
+#     text("Score: " + str(score), 0, 0)
+#     if state == 3:
+#         pen(10,10,10)
+#         text("Game over!", 10, 60)
+# 
+# def update_old(tick):
+#     # global aliens, sprites, game
+#     global sprites, state, ship, aliens, missile, missile1, missile2, score, level
+#     if state == 0:
+#         score = 0
+#         state = 1
+#         ship = Ship()
+#     elif state == 1:
+#         # space  = _stage.Grid(tiles)
+#         aliens = Aliens()
+#         # game   = _stage.Stage(.display, 12)
+#         # for y in range(8):
+#         #     for x in range(8):
+#         #         space.tile(x, y, 1)
+#         # for i in range(8):
+#         #     space.tile(random.randint(0, 7), random.randint(0, 7),
+#         #                random.randint(2, 3))
+#         # aliens.move(8, 17)
+#         # saucer   = Saucer()
+#         # bomb     = Bomb()
+#         
+#         missile  = Missile(0)
+#         missile1 = Missile(1)
+#         missile2 = Missile(2)
+#         # text = stage.Text(9, 1)
+#         # text.move(28, 60)
+#         # sprites = [saucer, bomb, ship, missile, missile1, missile2]
+#         sprites = [ship, aliens, missile, missile1, missile2]
+#         # game.layers = [text] + sprites + [aliens, space]
+#         # game.render_block()
+#         # # pew_sound = open("invaders_pew.wav", 'rb')
+#         # boom_sound = open("invaders_boom.wav", 'rb')
+#         # sound = .audio
+#         # sound.mute(False)
+#         state = 2
+#     elif state == 2:
+#         # if aliens.left + aliens.right < 112 and aliens.y < 80 and not ship.dead:
+#         for sprite in sprites:
+#             sprite.update(tick)
+#         if aliens.dirty:
+#             aliens.reform()
+#             # aliens.update()
+#         if ship.dead or (aliens.y - aliens.bottom) >= 72:
+#             state = 3
+#         if aliens.num_left == 0:
+#             level += 1
+#             state = 1
+#     elif state == 3:
+#         pass
+        
+class Invaders():
+    
+    def __init__(self):
+        self.score = 0
+        self.level = 0
+        self.new_level()
+        
+    def new_level(self):
+        self.level += 1
+        self.state = 1
+        self.aliens = Aliens(self)
+        self.ship = Ship(self)
+        self.missile = Missile(self)
+        self.missile1 = Missile(self)
+        self.missile2 = Missile(self)
+        self.sprites = [
+            self.ship,
+            self.aliens,
+            self.missile,
+            self.missile1,
+            self.missile2
+        ]
+        
+        
 def draw(tick):
-    global sprites, score, state
+    global game
     pen(0,0,0)
     clear()
-    for sprite in sprites:
+    for sprite in game.sprites:
         sprite.draw()
     pen(5, 5, 8)
-    text("Score: " + str(score), 0, 0)
-    if state == 3:
+    text("Score: " + str(game.score), 0, 0)
+    if game.state == 2:
         pen(10,10,10)
         text("Game over!", 10, 60)
 
+
 def update(tick):
-    # global aliens, sprites, game
-    global sprites, state, ship, aliens, missile, missile1, missile2, score, level
-    if state == 0:
-        score = 0
-        state = 1
-        ship = Ship()
-    elif state == 1:
-        # space  = _stage.Grid(tiles)
-        aliens = Aliens()
-        # game   = _stage.Stage(.display, 12)
-        # for y in range(8):
-        #     for x in range(8):
-        #         space.tile(x, y, 1)
-        # for i in range(8):
-        #     space.tile(random.randint(0, 7), random.randint(0, 7),
-        #                random.randint(2, 3))
-        # aliens.move(8, 17)
-        # saucer   = Saucer()
-        # bomb     = Bomb()
-        
-        missile  = Missile(0)
-        missile1 = Missile(1)
-        missile2 = Missile(2)
-        # text = stage.Text(9, 1)
-        # text.move(28, 60)
-        # sprites = [saucer, bomb, ship, missile, missile1, missile2]
-        sprites = [ship, aliens, missile, missile1, missile2]
-        # game.layers = [text] + sprites + [aliens, space]
-        # game.render_block()
-        # # pew_sound = open("invaders_pew.wav", 'rb')
-        # boom_sound = open("invaders_boom.wav", 'rb')
-        # sound = .audio
-        # sound.mute(False)
-        state = 2
-    elif state == 2:
-        # if aliens.left + aliens.right < 112 and aliens.y < 80 and not ship.dead:
-        for sprite in sprites:
+    global game
+    if game.state == 0:
+        game = Invaders()
+    elif game.state == 1:
+        for sprite in game.sprites:
             sprite.update(tick)
-        if aliens.dirty:
-            aliens.reform()
-            # aliens.update()
-        if ship.dead or (aliens.y - aliens.bottom) >= 72:
-            state = 3
-        if aliens.num_left == 0:
-            level += 1
-            state = 1
-    elif state == 3:
+        if game.aliens.dirty:
+            game.aliens.reform()
+        if game.ship.dead or (game.aliens.y - game.aliens.bottom) >= 72:
+            game.state = 2
+        if game.aliens.num_left == 0:
+            game.new_level()
+    elif game.state == 2:
         pass
         
 
-tiles = Buffer(16, 256, "invaders_tiles.16bpp")
-ship = aliens = missile = missile1 = missile2 = None
-state = 0
-score = 0
-level = 0
-sprites = []
+game = Invaders()
 start()
