@@ -3,9 +3,11 @@ import time
 from _leaderboard import Leaderboard
 
 TILES = Buffer(16, 256, "invaders_tiles.16bpp")
+LIGHT = (10, 10, 10)
+spritesheet()
 
 def draw_sprite(n, x, y):
-    blit(TILES, 0, n * 16, 16, 16, x, y, )
+    blit(TILES, 0, n * 16, 16, 16, x, y)
 
 
 class Ship():
@@ -17,24 +19,18 @@ class Ship():
         self.tick = 0
         self.dead = False
         self.game = game
+        self.paused = False
 
     def draw(self):
         draw_sprite(self.n, self.x, self.y)
 
     def update(self, tick):
-        # keys = _ugame.buttons.get_pressed()
-        # self.set_frame(4, 0 if self.tick else 4)
-        # if keys & _ugame.K_RIGHT:
         if button(RIGHT):
-            self.dx = 1 # min(self.dx + 1, 4)
-            # self.set_frame(5, 0)
-        # elif keys & _ugame.K_LEFT:
+            self.dx = 1
         elif button(LEFT):
-            self.dx = -1 # max(self.dx - 1, -4)
-            # self.set_frame(5, 4)
+            self.dx = -1
         else:
-            self.dx = 0 # self.dx // 2
-        # if keys & _ugame.K_X:
+            self.dx = 0
         if pressed(A):
             if self.game.missile.y <= -16:
                 self.game.missile.x = self.x
@@ -52,59 +48,75 @@ class Ship():
             #     missile2.move(self.x, self.y)
             #     # sound.play(pew_sound)
         # if keys & _ugame.K_O:
-        # if pressed(A):
-        #     pause(" Pause...")
         self.x = max(min(self.x + self.dx, 104), 0)
-        # self.move(self.x, self.y)
 
 
-# class Saucer():
-#     def __init__(self):
-#         self.x = 0
-#         self.y = 0
-#         self.n = 9
-#         self.tick = 0
-#         self.dx = 4
+class Saucer():
+    
+    def __init__(self, game):
+        self.x = 0
+        self.y = 0
+        self.n = 9
+        self.tick = 0
+        self.dx = 2
+        self.game = game
 
-#     def update(self):
+    def draw(self):
+        draw_sprite(self.n, self.x, self.y)
+
+    def update(self, tick):
 #         super().update()
-#         self.tick = (self.tick + 1) % 6
+        self.tick = (self.tick + 1) % 6
+        self.n = 9
 #         self.layer.frame(9, 0 if self.tick >= 3 else 4)
-#         if self.x >= 128 or self.x <= -16:
-#             self.dx = -self.dx
+        if self.x >= 128 or self.x <= -16:
+            self.dx = -self.dx
 #         self.move(self.x + self.dx, self.y)
-#         if abs(self.x - ship.x) < 4 and bomb.y >= 128:
+        self.x += self.dx
+        if abs(self.x - game.ship.x) < 4 and game.bomb.y >= 128:
+            game.bomb.x = self.x
+            game.bomb.y = self.y
 #             bomb.move(self.x, self.y)
 
 
-# class Bomb():
-#     def __init__(self):
-#         self.n = 6
-#         self.x = 0
-#         self.y = 128
-#         self.boom = 0
+class Bomb():
+    
+    def __init__(self, game):
+        self.n = 6
+        self.x = 0
+        self.y = 128
+        self.boom = 0
+        self.game = game
+        
+    def draw(self):
+        draw_sprite(self.n, self.x, self.y)
 
-#     def update(self):
-#         super().update()
-#         if self.y >= 128:
-#             return
-#         if self.boom:
-#             if self.boom == 1:
-#                 sound.play(boom_sound)
-#             self.set_frame(12 + self.boom, 0)
-#             self.boom += 1
-#             if self.boom > 4:
-#                 self.boom = 0
-#                 ship.dead = True
-#                 self.move(self.x, 128)
-#             return
-#         self.move(self.x, self.y + 8)
-#         self.set_frame(6, 0 if self.y % 16 else 4)
-#         if _stage.collide(self.x + 4, self.y + 4, self.x + 12, self.y + 12,
-#                          ship.x + 4, ship.y + 4, ship.x + 12, ship.y + 12):
-#             self.boom = 1
+    def update(self, tick):
+        if self.y >= 128:
+            return
+        if self.boom:
+            if self.boom == 1:
+                pass # sound.play(boom_sound)
+            self.n = 12 + self.boom
+            self.boom += 1
+            if self.boom > 4:
+                self.boom = 0
+                game.ship.dead = True
+                self.y = 128
+            return
+        self.y += 4
+        self.n = 6
+        self.ax = (self.x + 8 - self.game.ship.x) // 16
+        self.ay = (self.y + 4 - self.game.ship.y) // 16
+        if (
+            (self.ax == self.ay == 0) and
+            ((self.x + 8 - game.ship.x) % 16 > 2) and 
+            ((self.y + 8 - game.ship.y) % 16 > 2)
+        ):
+            self.boom = 1
 
 class Missile():
+    
     def __init__(self, game):
         self.n = 12
         self.x = 0
@@ -133,9 +145,11 @@ class Missile():
             return
         self.y -= 4
         self.n = 12 - self.power
+        # get the position of the missile on an extrapolated alien grid
         self.ax = (self.x + 8 - self.game.aliens.x) // 16
         self.ay = (self.y + 4 - self.game.aliens.y) // 16
         try:
+            # decide if we have an impact depending on whether the shot was accurate enough
             if self.game.aliens.grid[self.ay][self.ax] and (self.x + 8 - self.game.aliens.x) % 16 > 2:
                 self.game.aliens.grid[self.ay][self.ax] = 7
                 self.y -= 4
@@ -144,18 +158,19 @@ class Missile():
             pass
 
     def kill(self):
-#         self.move(self.x, -32)
         self.y = -32
-#         self.set_frame(12 - self.power)
         self.n = 12 - self.power
 
+
 class Aliens():
+    
     def __init__(self, game):
-        self.grid = [ [ 8 for x in range(7)] for y in range(3) ]
-        # self.tick = 0
+        self.cols = 7
+        self.rows = 3
+        self.num_left = self.cols * self.rows
+        self.grid = [ [ 8 for x in range(self.cols)] for y in range(self.rows) ]
         self.left = self.descend = self.right = self.bottom = 0
         self.dx = game.level
-        self.num_left = 7 * 3
         self.dirty = False
         self.x = 4
         self.y = 0
@@ -164,10 +179,10 @@ class Aliens():
 
     def draw(self):
         for y_index, row in enumerate(self.grid):
-            for x_index, sprite in enumerate(row):
-                if sprite:
+            for x_index, col in enumerate(row):
+                if col:
                     draw_sprite(
-                        sprite - self.i,
+                        col - self.i,
                         x_index * 16 + self.x,
                         y_index * 16 + self.y
                     )
@@ -205,21 +220,6 @@ class Aliens():
         print(self.num_left)
 
 
-# def pause(info):
-#     while pressed(A):
-#         time.sleep(0.25)
-#     text.cursor(0, 0)
-#     text.text(info)
-#     game.render_block()
-#     while not pressed(A):
-#         time.sleep(0.25)
-#     text.clear()
-#     game.render_block()
-#     while pressed(A):
-#         time.sleep(0.25)
-
-
-# tiles = stage.Bank.from_bmp16("invaders_tiles.bmp")
 # while True:
 #     space = stage.Grid(tiles)
 #     aliens = Aliens()
@@ -331,12 +331,15 @@ class Invaders():
         self.score = 0
         self.level = 0
         self.new_level()
+        self.paused = False
         
     def new_level(self):
         self.level += 1
         self.state = 1
         self.aliens = Aliens(self)
         self.ship = Ship(self)
+        self.bomb = Bomb(self)
+        self.saucer = Saucer(self)
         self.missile = Missile(self)
         self.missile1 = Missile(self)
         self.missile2 = Missile(self)
@@ -345,7 +348,9 @@ class Invaders():
             self.aliens,
             self.missile,
             self.missile1,
-            self.missile2
+            self.missile2,
+            self.bomb,
+            self.saucer
         ]
         
         
@@ -360,23 +365,33 @@ def draw(tick):
     if game.state == 2:
         pen(10,10,10)
         text("Game over!", 10, 60)
+    if game.paused:
+        alpha(8)
+        pen(0,0,0)
+        clear()
+        alpha()
+        pen(*LIGHT)
+        text("Paused . . .", 30, 60)
 
 
 def update(tick):
     global game
-    if game.state == 0:
-        game = Invaders()
-    elif game.state == 1:
-        for sprite in game.sprites:
-            sprite.update(tick)
-        if game.aliens.dirty:
-            game.aliens.reform()
-        if game.ship.dead or (game.aliens.y - game.aliens.bottom) >= 72:
-            game.state = 2
-        if game.aliens.num_left == 0:
-            game.new_level()
-    elif game.state == 2:
-        pass
+    if pressed(B):
+        game.paused = not game.paused
+    if not game.paused:
+        if game.state == 0:
+            game = Invaders()
+        elif game.state == 1:
+            for sprite in game.sprites:
+                sprite.update(tick)
+            if game.aliens.dirty:
+                game.aliens.reform()
+            if game.ship.dead or (game.aliens.y - game.aliens.bottom) >= 72:
+                game.state = 2
+            if game.aliens.num_left == 0:
+                game.new_level()
+        elif game.state == 2:
+            pass
         
 
 game = Invaders()
