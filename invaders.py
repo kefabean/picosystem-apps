@@ -2,9 +2,14 @@ import random
 import time
 from _leaderboard import Leaderboard
 
+
 TILES = Buffer(16, 256, "invaders_tiles.16bpp")
+BLACK = (0, 0, 0)
+WHITE = (15, 15, 15)
 LIGHT = (10, 10, 10)
+GRAY = (1, 1, 1)
 spritesheet()
+
 
 def draw_sprite(n, x, y):
     blit(TILES, 0, n * 16, 16, 16, x, y)
@@ -35,19 +40,12 @@ class Ship():
             if self.game.missile.y <= -16:
                 self.game.missile.x = self.x
                 self.game.missile.y = self.y
-            #     missile.move(self.x, self.y)
-            #     # sound.play(pew_sound)
             elif self.game.missile1.y <= 16:
                 self.game.missile1.x = self.x
                 self.game.missile1.y = self.y
-            #     missile1.move(self.x, self.y)
-            #     # sound.play(pew_sound)
             elif self.game.missile2.y <= 16:
                 self.game.missile2.x = self.x
                 self.game.missile2.y = self.y
-            #     missile2.move(self.x, self.y)
-            #     # sound.play(pew_sound)
-        # if keys & _ugame.K_O:
         self.x = max(min(self.x + self.dx, 104), 0)
 
 
@@ -65,18 +63,14 @@ class Saucer():
         draw_sprite(self.n, self.x, self.y)
 
     def update(self, tick):
-#         super().update()
         self.tick = (self.tick + 1) % 6
-        self.n = 9
-#         self.layer.frame(9, 0 if self.tick >= 3 else 4)
+        self.n = 9 # self.layer.frame(9, 0 if self.tick >= 3 else 4)
         if self.x >= 128 or self.x <= -16:
             self.dx = -self.dx
-#         self.move(self.x + self.dx, self.y)
         self.x += self.dx
         if abs(self.x - game.ship.x) < 4 and game.bomb.y >= 128:
             game.bomb.x = self.x
             game.bomb.y = self.y
-#             bomb.move(self.x, self.y)
 
 
 class Bomb():
@@ -263,17 +257,6 @@ class Aliens():
 #     else:
 #         pause("You won!")
 
-# def draw_old(tick):
-#     global sprites, score, state
-#     pen(0,0,0)
-#     clear()
-#     for sprite in sprites:
-#         sprite.draw()
-#     pen(5, 5, 8)
-#     text("Score: " + str(score), 0, 0)
-#     if state == 3:
-#         pen(10,10,10)
-#         text("Game over!", 10, 60)
 # 
 # def update_old(tick):
 #     # global aliens, sprites, game
@@ -293,22 +276,7 @@ class Aliens():
 #         #     space.tile(random.randint(0, 7), random.randint(0, 7),
 #         #                random.randint(2, 3))
 #         # aliens.move(8, 17)
-#         # saucer   = Saucer()
-#         # bomb     = Bomb()
-#         
-#         missile  = Missile(0)
-#         missile1 = Missile(1)
-#         missile2 = Missile(2)
-#         # text = stage.Text(9, 1)
-#         # text.move(28, 60)
-#         # sprites = [saucer, bomb, ship, missile, missile1, missile2]
-#         sprites = [ship, aliens, missile, missile1, missile2]
-#         # game.layers = [text] + sprites + [aliens, space]
-#         # game.render_block()
-#         # # pew_sound = open("invaders_pew.wav", 'rb')
-#         # boom_sound = open("invaders_boom.wav", 'rb')
-#         # sound = .audio
-#         # sound.mute(False)
+
 #         state = 2
 #     elif state == 2:
 #         # if aliens.left + aliens.right < 112 and aliens.y < 80 and not ship.dead:
@@ -327,15 +295,22 @@ class Aliens():
         
 class Invaders():
     
+    START = "start"
+    PAUSED = "paused"
+    GAME_OVER = "gameover"
+    LEADERBOARD = "leaderboard"
+    NAME_ENTRY = "nameentry"
+    
     def __init__(self):
+        self.leaderboard = Leaderboard(self, "invaders")
         self.score = 0
         self.level = 0
+        self.state = Invaders.START
         self.new_level()
-        self.paused = False
         
     def new_level(self):
         self.level += 1
-        self.state = 1
+        #self.state = Invaders.PLAYING
         self.aliens = Aliens(self)
         self.ship = Ship(self)
         self.bomb = Bomb(self)
@@ -356,42 +331,42 @@ class Invaders():
         
 def draw(tick):
     global game
-    pen(0,0,0)
+    pen(*BLACK)
     clear()
     for sprite in game.sprites:
         sprite.draw()
     pen(5, 5, 8)
     text("Score: " + str(game.score), 0, 0)
-    if game.state == 2:
-        pen(10,10,10)
-        text("Game over!", 10, 60)
-    if game.paused:
+    if game.state == Invaders.PAUSED:
         alpha(8)
-        pen(0,0,0)
+        pen(*BLACK)
         clear()
         alpha()
         pen(*LIGHT)
         text("Paused . . .", 30, 60)
+    if game.state == "gameover" or game.state == "leaderboard" or game.state == "nameentry":
+        game.leaderboard.draw(tick)
 
 
 def update(tick):
     global game
-    if pressed(B):
-        game.paused = not game.paused
-    if not game.paused:
-        if game.state == 0:
-            game = Invaders()
-        elif game.state == 1:
-            for sprite in game.sprites:
-                sprite.update(tick)
-            if game.aliens.dirty:
-                game.aliens.reform()
-            if game.ship.dead or (game.aliens.y - game.aliens.bottom) >= 72:
-                game.state = 2
-            if game.aliens.num_left == 0:
-                game.new_level()
-        elif game.state == 2:
-            pass
+    if game.state == Invaders.START:
+        if pressed(B):
+            game.state = Invaders.PAUSED
+        for sprite in game.sprites:
+            sprite.update(tick)
+        if game.aliens.dirty:
+            game.aliens.reform()
+        if game.ship.dead or (game.aliens.y - game.aliens.bottom) >= 72:
+            game.state = Invaders.GAME_OVER
+            return
+        if game.aliens.num_left == 0:
+            game.new_level()
+    elif game.state == Invaders.PAUSED:
+        if pressed(B):
+            game.state = Invaders.START
+    elif game.state != Invaders.START and game.state != Invaders.PAUSED:
+        game.leaderboard.update(game)
         
 
 game = Invaders()
